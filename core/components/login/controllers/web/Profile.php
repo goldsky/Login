@@ -57,7 +57,7 @@ class LoginProfileController extends LoginController {
 
     /**
      * Set the user data to placeholders
-     * 
+     *
      * @return array
      */
     public function setToPlaceholders() {
@@ -86,14 +86,48 @@ class LoginProfileController extends LoginController {
     public function getExtended() {
         $extended = array();
         if ($this->getProperty('useExtended',true,'isset')) {
-            $extended = $this->profile->get('extended');
+            $getExtended = $this->profile->get('extended');
+            $ext = array();
+            foreach ($getExtended as $k => $v) {
+                if (is_array($v)) {
+                    $ext[] = $this->_implodePhs($v, $k);
+                } else {
+                    $ext[][$k] = $v;
+                }
+            }
+            foreach ($ext as $v) {
+                foreach ($v as $a => $b) {
+                    $extended[$a] = $b;
+                }
+            }
         }
         return (array) $extended;
     }
 
     /**
+     * Merge multi dimensional associative arrays with separator
+     * @param array $array raw associative array
+     * @param string $keyName parent key of this array
+     * @param string $separator separator between the merged keys
+     * @param array $holder to hold temporary array results
+     * @return array one level array
+     */
+    private function _implodePhs(array $array, $keyName = null, $separator = '.', array $holder = array()) {
+        $phs = !empty($holder) ? $holder : array();
+        foreach ($array as $k => $v) {
+            $key = !empty($keyName) ? $keyName . $separator . $k : $k;
+            if (is_array($v)) {
+                $phs = $this->_implodePhs($v, $key, $separator, $phs);
+            } else {
+                $phs[$key] = $v;
+            }
+        }
+        return $phs;
+    }
+
+    /**
      * Get the profile for the user
-     * 
+     *
      * @return bool|modUserProfile
      */
     public function getProfile() {
