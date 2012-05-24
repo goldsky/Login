@@ -70,7 +70,7 @@ class LoginUpdateProfileController extends LoginController {
         if (!$this->verifyAuthentication()) return '';
         if (!$this->getUser()) return '';
         if (!$this->getProfile()) return '';
-        
+
         $this->setFieldPlaceholders();
         $this->checkForSuccessMessage();
         if ($this->hasPost()) {
@@ -146,14 +146,55 @@ class LoginUpdateProfileController extends LoginController {
      */
     public function setFieldPlaceholders() {
         $placeholders = $this->profile->toArray();
-        /* add extended fields to placeholders */
+        $extended = $this->getExtended();
+        $placeholders = array_merge($extended,$placeholders);
+        $this->modx->toPlaceholders($placeholders,$this->getProperty('placeholderPrefix'));
+    }
+
+    /**
+     * Get extended fields for a user
+     * @return array
+     */
+    public function getExtended() {
+        $extended = array();
         if ($this->getProperty('useExtended',true,'isset')) {
-            $extended = $this->profile->get('extended');
-            if (!empty($extended) && is_array($extended)) {
-                $placeholders = array_merge($extended,$placeholders);
+            $getExtended = $this->profile->get('extended');
+            $ext = array();
+            foreach ($getExtended as $k => $v) {
+                if (is_array($v)) {
+                    $ext[] = $this->_implodePhs($v, $k);
+                } else {
+                    $ext[][$k] = $v;
+                }
+            }
+            foreach ($ext as $v) {
+                foreach ($v as $a => $b) {
+                    $extended[$a] = $b;
+                }
             }
         }
-        $this->modx->toPlaceholders($placeholders,$this->getProperty('placeholderPrefix'));
+        return (array) $extended;
+    }
+
+    /**
+     * Merge multi dimensional associative arrays with separator
+     * @param array $array raw associative array
+     * @param string $keyName parent key of this array
+     * @param string $separator separator between the merged keys
+     * @param array $holder to hold temporary array results
+     * @return array one level array
+     */
+    private function _implodePhs(array $array, $keyName = null, $separator = '.', array $holder = array()) {
+        $phs = !empty($holder) ? $holder : array();
+        foreach ($array as $k => $v) {
+            $key = !empty($keyName) ? $keyName . $separator . $k : $k;
+            if (is_array($v)) {
+                $phs = $this->_implodePhs($v, $key, $separator, $phs);
+            } else {
+                $phs[$key] = $v;
+            }
+        }
+        return $phs;
     }
 
     /**
@@ -177,7 +218,7 @@ class LoginUpdateProfileController extends LoginController {
 
     /**
      * Validate the form submission
-     * 
+     *
      * @return boolean
      */
     public function validate() {
@@ -187,6 +228,7 @@ class LoginUpdateProfileController extends LoginController {
         foreach ($fields as $k => $v) {
             $fields[$k] = str_replace(array('[',']'),array('&#91;','&#93;'),$v);
         }
+        $this->dictionary->reset();
         $this->dictionary->fromArray($fields);
 
         $this->removeSubmitVar();
