@@ -168,7 +168,7 @@ class LoginUpdateProfileProcessor extends LoginProcessor {
      * @return boolean
      */
     public function save() {
-        $this->controller->user->addOne($profile,'Profile');
+        $this->controller->user->addOne($this->profile,'Profile');
         $saved = $this->controller->user->save();
         if (!$saved) {
             /* revert username change */
