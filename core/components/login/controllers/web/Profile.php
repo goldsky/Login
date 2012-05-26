@@ -35,6 +35,8 @@ class LoginProfileController extends LoginController {
         $this->setDefaultProperties(array(
             'prefix' => '',
             'user' => false,
+            'useExtended' => true,
+            'extendedTpls' => ''
         ));
         $this->modx->lexicon->load('login:profile');
     }
@@ -62,7 +64,11 @@ class LoginProfileController extends LoginController {
      */
     public function setToPlaceholders() {
         $placeholders = array_merge($this->profile->toArray(),$this->user->toArray());
-        $extended = $this->getExtended();
+        if ($extendedTpls = $this->getProperty('extendedTpls')) {
+            $extended = $this->extendedTpls($extendedTpls, $placeholders['extended']);
+        } else {
+            $extended = $this->getExtended();
+        }
         $placeholders = array_merge($extended,$placeholders);
         $placeholders = $this->removePasswordPlaceholders($placeholders);
         $this->modx->toPlaceholders($placeholders,$this->getProperty('prefix','','isset'),'');
@@ -77,6 +83,88 @@ class LoginProfileController extends LoginController {
     public function removePasswordPlaceholders(array $placeholders = array()) {
         unset($placeholders['password'],$placeholders['cachepwd']);
         return $placeholders;
+    }
+
+    /**
+     * Return the content of numeric keys into the chunk to be loop according to
+     * the sum of the rows
+     * @param string $tpls {parent-key:chunk[,parent-key:chunk]} pairings
+     * @param array $extended extended contents
+     * @return array parsed extended contents
+     */
+    public function extendedTpls($tpls, array $extended) {
+        $templates = json_decode($tpls,1);
+        $output = array();
+        foreach ($extended as $k => $v) {
+            if (is_array($v)) {
+                $rec = $this->_recursiveNumericChild($v);
+                if ($rec['count'] > 0) {
+                    $rows = array();
+                    if ($flip = $this->_flipNumericChild($v, $k)) {
+                        for ($i = 0; $i < $rec['count']; $i++) {
+                            // $output[$k] = $flip;
+                            $rows[] = $this->login->getChunk($templates[$k], $flip[$i], $this->getProperty('tplType', 'modChunk'));
+                        }
+                    }
+                    $output[$k] = @implode("\n", $rows);
+                } else {
+                    $output[$k] = $v;
+                }
+            } else {
+                $output[$k] = $v;
+            }
+        }
+        return $output;
+    }
+
+    /**
+     * Flip the numeric keys as the parent key of the same extended sets
+     * @param array $array extended array
+     * @param string $parentKey parent key's name to be glued back as the placeholder's prefix
+     * @param string $separator placeholder names' separator
+     * @return array flipped array
+     */
+    private function _flipNumericChild(array $array, $parentKey, $separator='.') {
+        $flip = $ar = array();
+        foreach ($array as $k => $v) {
+            if (is_array($v)) {
+                $ar[] = $this->_implodePhs($v, $k);
+            } else {
+                $ar[][$k] = $v;
+            }
+        }
+        foreach ($ar as $v) {
+            $exp = array(); $imp = '';
+            foreach ($v as $a => $b) {
+                $exp = @explode($separator, $a);
+                $index = array_pop($exp);
+                $imp = @implode($separator, $exp);
+                $key = !empty($imp) ? $parentKey . $separator . $imp : $parentKey;
+                $flip[$index][$key] = $b;
+            }
+        }
+
+        return $flip;
+    }
+
+    /**
+     * Helper method to detect the existance of numeric keys
+     * @param array $tree raw array
+     * @param int $depth get the depth of multi dimension array
+     * @return array depth & count of numeric keys in the extended profile
+     */
+    private function _recursiveNumericChild(array $tree, $depth = 0) {
+        $rec = array();
+        foreach ($tree as $k => $v) {
+            if (is_array($v)) {
+                return $this->_recursiveNumericChild($v, $depth+1);
+            } else {
+                $rec['depth'] = $depth;
+                /* this below detects multiple field names based on numeric array */
+                $rec['count'] = is_numeric($k) ? count($tree) : 0;
+                return $rec;
+            }
+        }
     }
 
     /**
