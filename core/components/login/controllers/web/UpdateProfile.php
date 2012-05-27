@@ -152,52 +152,6 @@ class LoginUpdateProfileController extends LoginController {
     }
 
     /**
-     * Get extended fields for a user
-     * @return array
-     */
-    public function getExtended() {
-        $extended = array();
-        if ($this->getProperty('useExtended',true,'isset')) {
-            $getExtended = $this->profile->get('extended');
-            $ext = array();
-            foreach ($getExtended as $k => $v) {
-                if (is_array($v)) {
-                    $ext[] = $this->_implodePhs($v, $k);
-                } else {
-                    $ext[][$k] = $v;
-                }
-            }
-            foreach ($ext as $v) {
-                foreach ($v as $a => $b) {
-                    $extended[$a] = $b;
-                }
-            }
-        }
-        return (array) $extended;
-    }
-
-    /**
-     * Merge multi dimensional associative arrays with separator
-     * @param array $array raw associative array
-     * @param string $keyName parent key of this array
-     * @param string $separator separator between the merged keys
-     * @param array $holder to hold temporary array results
-     * @return array one level array
-     */
-    private function _implodePhs(array $array, $keyName = null, $separator = '.', array $holder = array()) {
-        $phs = !empty($holder) ? $holder : array();
-        foreach ($array as $k => $v) {
-            $key = !empty($keyName) ? $keyName . $separator . $k : $k;
-            if (is_array($v)) {
-                $phs = $this->_implodePhs($v, $key, $separator, $phs);
-            } else {
-                $phs[$key] = $v;
-            }
-        }
-        return $phs;
-    }
-
-    /**
      * Look for a success message by the previous updating
      * @return void
      */
@@ -308,5 +262,73 @@ class LoginUpdateProfileController extends LoginController {
         }
         return $validated;
     }
+
+    /**
+     * Hook's helper to check extended fields' contents whether the whole set
+     * empty or not.
+     * @param array $tree getExtended array
+     * @param string $parentKey parent key of the set
+     * @return array a fields set of the parent key that has content
+     */
+    public function filterEmptyFields(array $tree, $parentKey) {
+        $flip = $this->flipNumericChild($tree, $parentKey);
+        $clean = $this->deleteEmptyTree($flip);
+        sort($clean);
+        $revert = $this->revertArray($clean, $parentKey);
+        return $revert;
+    }
+
+    /**
+     * Delete a series of extended fields with the same parent key
+     * @param array $tree extended fields array
+     * @return array a fields set of the parent key that has content
+     */
+    public function deleteEmptyTree(array $tree) {
+        foreach ($tree as $k => $v) {
+            $count = count($v);
+            $empty = 0;
+            foreach ($v as $b) {
+                if (empty($b)) {
+                    $empty++;
+                }
+            }
+            if ($count === $empty) {
+                unset($tree[$k]);
+            }
+        }
+        return $tree;
+    }
+
+    /**
+     * Revert back the extended array from dot imploded placeholders
+     * @param array $tree array of the placeholders
+     * @param string $key parent key of this placeholders
+     * @return array the original stacked array
+     */
+    public function revertArray(array $tree, $key) {
+        $newArray = array();
+        foreach ($tree as $index => $phs) {
+            foreach ($phs as $a => $b) {
+                $exp = @explode('.', $a);
+                $count = count($exp);
+                $temp = array();
+                $revert = array();
+                for ($i = $count; $i > 0; $i--) {
+                    if (empty($revert)) {
+                        $revert[$exp[$i-1]] = array($index => $b);
+                    } else {
+                        $temp[$exp[$i-1]] = $revert;
+                        $revert = array();
+                        $revert = $temp;
+                        $temp = array();
+                    }
+                }
+                $newArray = !empty($newArray) ? $newArray : array();
+                $newArray = array_merge_recursive($newArray, $revert);
+            }
+        }
+        return $newArray[$key];
+    }
+
 }
 return 'LoginUpdateProfileController';
