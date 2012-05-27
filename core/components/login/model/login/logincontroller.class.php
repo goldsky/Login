@@ -226,6 +226,102 @@ abstract class LoginController {
         return $processor;
     }
 
+    /**
+     * Get extended fields for a user
+     * @return array
+     */
+    public function getExtended() {
+        $extended = array();
+        if ($this->getProperty('useExtended',true,'isset')) {
+            $getExtended = $this->profile->get('extended');
+            $ext = array();
+            foreach ($getExtended as $k => $v) {
+                if (is_array($v)) {
+                    $ext[] = $this->implodePhs($v, $k);
+                } else {
+                    $ext[][$k] = $v;
+                }
+            }
+            foreach ($ext as $v) {
+                foreach ($v as $a => $b) {
+                    $extended[$a] = $b;
+                }
+            }
+        }
+        return (array) $extended;
+    }
+
+    /**
+     * Merge multi dimensional associative arrays with separator
+     * @param array $array raw associative array
+     * @param string $keyName parent key of this array
+     * @param string $separator separator between the merged keys
+     * @param array $holder to hold temporary array results
+     * @return array one level array
+     */
+    public function implodePhs(array $array, $keyName = null, $separator = '.', array $holder = array()) {
+        $phs = !empty($holder) ? $holder : array();
+        foreach ($array as $k => $v) {
+            $key = !empty($keyName) ? $keyName . $separator . $k : $k;
+            if (is_array($v)) {
+                $phs = $this->implodePhs($v, $key, $separator, $phs);
+            } else {
+                $phs[$key] = $v;
+            }
+        }
+        return $phs;
+    }
+
+    /**
+     * Flip the numeric keys as the parent key of the same extended sets
+     * @param array $array extended array
+     * @param string $parentKey parent key's name to be glued back as the placeholder's prefix
+     * @param string $separator placeholder names' separator
+     * @return array flipped array
+     */
+    public function flipNumericChild(array $array, $parentKey, $separator='.') {
+        $flip = $ar = array();
+        foreach ($array as $k => $v) {
+            if (is_array($v)) {
+                $ar[] = $this->implodePhs($v, $k);
+            } else {
+                $ar[][$k] = $v;
+            }
+        }
+        foreach ($ar as $v) {
+            $exp = array(); $imp = '';
+            foreach ($v as $a => $b) {
+                $exp = @explode($separator, $a);
+                $index = array_pop($exp);
+                $imp = @implode($separator, $exp);
+                $key = !empty($imp) ? $parentKey . $separator . $imp : $parentKey;
+                $flip[$index][$key] = $b;
+            }
+        }
+
+        return $flip;
+    }
+
+    /**
+     * Helper method to detect the existance of numeric keys
+     * @param array $tree raw array
+     * @param int $depth get the depth of multi dimension array
+     * @return array depth & count of numeric keys in the extended profile
+     */
+    public function recursiveNumericChild(array $tree, $depth = 0) {
+        $rec = array();
+        foreach ($tree as $k => $v) {
+            if (is_array($v)) {
+                return $this->recursiveNumericChild($v, $depth+1);
+            } else {
+                $rec['depth'] = $depth;
+                /* this below detects multiple field names based on numeric array */
+                $rec['count'] = is_numeric($k) ? count($tree) : 0;
+                return $rec;
+            }
+        }
+    }
+
 }
 
 /**
@@ -241,7 +337,7 @@ abstract class LoginProcessor {
     public $dictionary;
     /** @var array $config */
     public $config = array();
-    
+
     /**
      * @param Login &$login A reference to the Login instance
      * @param LoginController &$controller

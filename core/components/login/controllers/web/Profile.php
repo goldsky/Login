@@ -97,10 +97,10 @@ class LoginProfileController extends LoginController {
         $output = array();
         foreach ($extended as $k => $v) {
             if (is_array($v)) {
-                $rec = $this->_recursiveNumericChild($v);
+                $rec = $this->recursiveNumericChild($v);
                 if ($rec['count'] > 0) {
                     $rows = array();
-                    if ($flip = $this->_flipNumericChild($v, $k)) {
+                    if ($flip = $this->flipNumericChild($v, $k)) {
                         for ($i = 0; $i < $rec['count']; $i++) {
                             // $output[$k] = $flip;
                             $rows[] = $this->login->getChunk($templates[$k], $flip[$i], $this->getProperty('tplType', 'modChunk'));
@@ -115,102 +115,6 @@ class LoginProfileController extends LoginController {
             }
         }
         return $output;
-    }
-
-    /**
-     * Flip the numeric keys as the parent key of the same extended sets
-     * @param array $array extended array
-     * @param string $parentKey parent key's name to be glued back as the placeholder's prefix
-     * @param string $separator placeholder names' separator
-     * @return array flipped array
-     */
-    private function _flipNumericChild(array $array, $parentKey, $separator='.') {
-        $flip = $ar = array();
-        foreach ($array as $k => $v) {
-            if (is_array($v)) {
-                $ar[] = $this->_implodePhs($v, $k);
-            } else {
-                $ar[][$k] = $v;
-            }
-        }
-        foreach ($ar as $v) {
-            $exp = array(); $imp = '';
-            foreach ($v as $a => $b) {
-                $exp = @explode($separator, $a);
-                $index = array_pop($exp);
-                $imp = @implode($separator, $exp);
-                $key = !empty($imp) ? $parentKey . $separator . $imp : $parentKey;
-                $flip[$index][$key] = $b;
-            }
-        }
-
-        return $flip;
-    }
-
-    /**
-     * Helper method to detect the existance of numeric keys
-     * @param array $tree raw array
-     * @param int $depth get the depth of multi dimension array
-     * @return array depth & count of numeric keys in the extended profile
-     */
-    private function _recursiveNumericChild(array $tree, $depth = 0) {
-        $rec = array();
-        foreach ($tree as $k => $v) {
-            if (is_array($v)) {
-                return $this->_recursiveNumericChild($v, $depth+1);
-            } else {
-                $rec['depth'] = $depth;
-                /* this below detects multiple field names based on numeric array */
-                $rec['count'] = is_numeric($k) ? count($tree) : 0;
-                return $rec;
-            }
-        }
-    }
-
-    /**
-     * Get extended fields for a user
-     * @return array
-     */
-    public function getExtended() {
-        $extended = array();
-        if ($this->getProperty('useExtended',true,'isset')) {
-            $getExtended = $this->profile->get('extended');
-            $ext = array();
-            foreach ($getExtended as $k => $v) {
-                if (is_array($v)) {
-                    $ext[] = $this->_implodePhs($v, $k);
-                } else {
-                    $ext[][$k] = $v;
-                }
-            }
-            foreach ($ext as $v) {
-                foreach ($v as $a => $b) {
-                    $extended[$a] = $b;
-                }
-            }
-        }
-        return (array) $extended;
-    }
-
-    /**
-     * Merge multi dimensional associative arrays with separator
-     * @param array $array raw associative array
-     * @param string $keyName parent key of this array
-     * @param string $separator separator between the merged keys
-     * @param array $holder to hold temporary array results
-     * @return array one level array
-     */
-    private function _implodePhs(array $array, $keyName = null, $separator = '.', array $holder = array()) {
-        $phs = !empty($holder) ? $holder : array();
-        foreach ($array as $k => $v) {
-            $key = !empty($keyName) ? $keyName . $separator . $k : $k;
-            if (is_array($v)) {
-                $phs = $this->_implodePhs($v, $key, $separator, $phs);
-            } else {
-                $phs[$key] = $v;
-            }
-        }
-        return $phs;
     }
 
     /**
