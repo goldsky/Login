@@ -295,6 +295,7 @@ abstract class LoginController {
                 $index = array_pop($exp);
                 $imp = @implode($separator, $exp);
                 $key = !empty($imp) ? $parentKey . $separator . $imp : $parentKey;
+                $extendedNumericSuffix = $this->getProperty('extendedNumericSuffix');
                 $extendedNumericSuffix = !empty($extendedNumericSuffix) ? $separator . $extendedNumericSuffix : '';
                 $flip[$index][$key . $extendedNumericSuffix] = $b;
             }

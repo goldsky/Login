@@ -273,6 +273,7 @@ class LoginUpdateProfileController extends LoginController {
     public function filterEmptyFields($tree, $parentKey) {
         $filter = array();
         if ($tree && is_array($tree)) {
+            $this->setProperty('extendedNumericSuffix', '');
             $flip = $this->flipNumericChild($tree, $parentKey);
             $clean = $this->deleteEmptyTree($flip);
             sort($clean);
