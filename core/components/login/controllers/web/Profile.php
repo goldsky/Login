@@ -36,7 +36,8 @@ class LoginProfileController extends LoginController {
             'prefix' => '',
             'user' => false,
             'useExtended' => true,
-            'extendedTpls' => ''
+            'extendedTpls' => '',
+            'extendedNumericSuffix' => 'index'
         ));
         $this->modx->lexicon->load('login:profile');
     }
@@ -104,6 +105,7 @@ class LoginProfileController extends LoginController {
                         for ($i = 0; $i < $rec['count']; $i++) {
                             // $output[$k] = $flip;
                             $rows[] = $this->login->getChunk($templates[$k], $flip[$i], $this->getProperty('tplType', 'modChunk'));
+                            $this->modx->unsetPlaceholders($flip[$i]);
                         }
                     }
                     $output[$k] = @implode("\n", $rows);

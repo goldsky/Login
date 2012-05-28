@@ -295,7 +295,8 @@ abstract class LoginController {
                 $index = array_pop($exp);
                 $imp = @implode($separator, $exp);
                 $key = !empty($imp) ? $parentKey . $separator . $imp : $parentKey;
-                $flip[$index][$key] = $b;
+                $extendedNumericSuffix = !empty($extendedNumericSuffix) ? $separator . $extendedNumericSuffix : '';
+                $flip[$index][$key . $extendedNumericSuffix] = $b;
             }
         }
 
@@ -311,8 +312,9 @@ abstract class LoginController {
     public function recursiveNumericChild(array $tree, $depth = 0) {
         $rec = array();
         foreach ($tree as $k => $v) {
+            $depth++;
             if (is_array($v)) {
-                return $this->recursiveNumericChild($v, $depth+1);
+                return $this->recursiveNumericChild($v, $depth);
             } else {
                 $rec['depth'] = $depth;
                 /* this below detects multiple field names based on numeric array */
