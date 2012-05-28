@@ -270,12 +270,15 @@ class LoginUpdateProfileController extends LoginController {
      * @param string $parentKey parent key of the set
      * @return array a fields set of the parent key that has content
      */
-    public function filterEmptyFields(array $tree, $parentKey) {
-        $flip = $this->flipNumericChild($tree, $parentKey);
-        $clean = $this->deleteEmptyTree($flip);
-        sort($clean);
-        $revert = $this->revertArray($clean, $parentKey);
-        return $revert;
+    public function filterEmptyFields($tree, $parentKey) {
+        $filter = array();
+        if ($tree && is_array($tree)) {
+            $flip = $this->flipNumericChild($tree, $parentKey);
+            $clean = $this->deleteEmptyTree($flip);
+            sort($clean);
+            $filter = $this->revertArray($clean, $parentKey);
+        }
+        return $filter;
     }
 
     /**
